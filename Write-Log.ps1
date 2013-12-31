@@ -28,7 +28,7 @@ function Write-Log
     {
         # Check for log variable
         If (!$log) { 
-            $log = "C:\dcinstall\ERROR.log" 
+            $log = "C:\ERROR.log" 
             $Message = "ERROR: Missing 'log' variable."
         }
         #Create log file/dir if it doesn't exist
