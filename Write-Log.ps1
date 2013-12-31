@@ -15,6 +15,7 @@ function Write-Log
 	Param
     (
         [Parameter(Position=0,
+                   Mandatory=$true,
                    ValueFromPipeline=$true)]
         [ValidateNotNullOrEmpty()]
         $Message
@@ -52,7 +53,7 @@ function Write-Log
         # Roll the log over if it gets bigger than 1MB
         $date = Get-Date -UFormat -%Y-%m-%d
 	    If ((Get-ChildItem $log).Length -gt 1048576) {
-		    Rename-Item -Path $log -NewName "$($MyInvocation.MyCommand.Name)-$date.log"
+		    Rename-Item -Path $log -NewName "$log-$date.log"
 	    }
     }
 }
