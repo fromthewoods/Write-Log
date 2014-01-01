@@ -5,7 +5,7 @@
    Accepts a string input as a message and outputs it into a log file. If the log file
    doesn't exist, it will create it. If the stamp param is passed it will prefix with
    the time stamp. If debug mode is false it will skip writing to the log. If the log
-   gets bigger than 1MB it will rename it and append the current date.
+   gets bigger than 1KB it will rename it and append the current date.
 .EXAMPLE
    Write-Log "This is a message" -Stamp
 #>
@@ -27,33 +27,43 @@ function Write-Log
     
     Begin
     {
-        # Check for log variable
-        If (!$log) { 
-            $log = "C:\ERROR.log" 
-            $Message = "ERROR: Missing 'log' variable."
+        # Check for log array
+        If (!$log) {
+            $log = @{
+                Location = "C:\"
+                Name = "ERROR" 
+                Extension = ".log"
+            }
+            $Message = "ERROR: Missing 'log' array."
         }
+        $logFile = $log.Location + $log.Name + $log.Extension
         #Create log file/dir if it doesn't exist
-        If (!(Test-Path $log)) { 
-            If (!(Test-Path $logLocation)) { mkdir $logLocation | Out-Null }
-            New-Item $log -ItemType "file" | Out-Null
+        If (!(Test-Path $logFile)) { 
+            If (!(Test-Path $log.Location)) { mkdir $log.Location | Out-Null }
+            New-Item $logFile -ItemType "file" | Out-Null
         }
     }
     Process
     { 
-        If ((!($DebugMode)) -or ($DebugMode -and $isDebug)) {
-            # Add the time stamp if specified
-            If ($Stamp) { $Message = "$(Get-Date) $Message" }
-            # Write to the log
+        # Add the time stamp if specified
+        If ($Stamp) { $Message = "$(Get-Date) $Message" }
+        
+        # Write to the log debug mode
+        If ($DebugMode -and $isDebug) {
             Write-Host "$Message"
-            Write-Output "$Message" | Out-File -FilePath $log -Append
+            Write-Output "$Message" | Out-File -FilePath $logFile -Append
+        } 
+        # Write to log in non debug mode
+        ElseIf (!($DebugMode))  {
+            Write-Output "$Message" | Out-File -FilePath $logFile -Append
         }
     }
     End
     {
         # Roll the log over if it gets bigger than 1MB
-        $date = Get-Date -UFormat -%Y-%m-%d
-	    If ((Get-ChildItem $log).Length -gt 1048576) {
-		    Rename-Item -Path $log -NewName "$log-$date.log"
+        $date = Get-Date -UFormat %Y-%m-%d.%H-%M-%S
+	    If ((Get-ChildItem $logFile).Length -gt 1024) {
+		    Rename-Item -Path $logFile -NewName $($log.Location + $log.Name + "__" + $date + $log.Extension)
 	    }
     }
 }
