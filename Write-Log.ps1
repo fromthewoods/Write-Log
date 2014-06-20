@@ -5,7 +5,7 @@
    Accepts a string input as a message and outputs it into a log file. If the log file
    doesn't exist, it will create it. If the stamp param is passed it will prefix with
    the time stamp. If debug mode is false it will skip writing to the log. If the log
-   gets bigger than 1KB it will rename it and append the current date.
+   gets bigger than 'maxsize' it will rename it and append the current date.
 .EXAMPLE
    Write-Log "This is a message" -Stamp
 #>
@@ -23,6 +23,9 @@ function Write-Log
         [switch]$Stamp
     ,
         [switch]$DebugMode
+    ,
+        # Size of log to roll over to a new file
+        [int]$maxsize = 5120
     )
     
     Begin
@@ -60,9 +63,10 @@ function Write-Log
     }
     End
     {
-        # Roll the log over if it gets bigger than 1MB
+        # Roll the log over if it gets bigger than maxsize
         $date = Get-Date -UFormat %Y-%m-%d.%H-%M-%S
-	    If ((Get-ChildItem $logFile).Length -gt 1024) {
+	    If ((Get-ChildItem $logFile).Length -gt $maxsize) {
+            Write-Output "Rolling log over because it reached maxsize: $maxsize Bytes" | Out-File -FilePath $logFile -Append
 		    Rename-Item -Path $logFile -NewName $($log.Location + $log.Name + "__" + $date + $log.Extension)
 	    }
     }
