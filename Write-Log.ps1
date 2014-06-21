@@ -62,7 +62,7 @@ function Write-Log
     {
         # Roll the log over if it gets bigger than 1MB
         $date = Get-Date -UFormat %Y-%m-%d.%H-%M-%S
-	    If ((Get-ChildItem $logFile).Length -gt 1024) {
+	    If ((Get-ChildItem $logFile).Length -gt 1048576) {
 		    Rename-Item -Path $logFile -NewName $($log.Location + $log.Name + "__" + $date + $log.Extension)
 	    }
     }
