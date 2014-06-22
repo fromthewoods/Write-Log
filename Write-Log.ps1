@@ -25,7 +25,7 @@ function Write-Log
         [switch]$DebugMode
     ,
         # Size of log to roll over to a new file
-        [int]$maxsize = 51200
+        [int]$maxsize = 512000
     )
     
     Begin
