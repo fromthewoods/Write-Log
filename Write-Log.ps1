@@ -24,6 +24,8 @@ function Write-Log
     ,
         [switch]$DebugMode
     ,
+        [switch]$WhatIf
+    ,
         # Size of log to roll over to a new file
         [int]$maxsize = 512000
     )
@@ -31,7 +33,8 @@ function Write-Log
     Begin
     {
         # Check for log array
-        If (!$log) {
+        If (!$log)
+        {
             $log = @{
                 Location = "C:\"
                 Name = "ERROR" 
@@ -41,7 +44,8 @@ function Write-Log
         }
         $logFile = $log.Location + $log.Name + $log.Extension
         #Create log file/dir if it doesn't exist
-        If (!(Test-Path $logFile)) { 
+        If (!(Test-Path $logFile))
+        {
             If (!(Test-Path $log.Location)) { mkdir $log.Location | Out-Null }
             New-Item $logFile -ItemType "file" | Out-Null
         }
@@ -52,20 +56,23 @@ function Write-Log
         If ($Stamp) { $Message = "$(Get-Date) $Message" }
         
         # Write to the log debug mode
-        If ($DebugMode -and $isDebug) {
+        If ($DebugMode -and $isDebug)
+        {
             Write-Host "$Message"
-            Write-Output "$Message" | Out-File -FilePath $logFile -Append
+            If (!$WhatIf) { Write-Output "$Message" | Out-File -FilePath $logFile -Append }
         } 
         # Write to log in non debug mode
-        ElseIf (!($DebugMode))  {
-            Write-Output "$Message" | Out-File -FilePath $logFile -Append
+        ElseIf (!($DebugMode))  
+        {
+            If (!$WhatIf) { Write-Output "$Message" | Out-File -FilePath $logFile -Append }
         }
     }
     End
     {
         # Roll the log over if it gets bigger than maxsize
         $date = Get-Date -UFormat %Y-%m-%d.%H-%M-%S
-	    If ((Get-ChildItem $logFile).Length -gt $maxsize) {
+	    If ((Get-ChildItem $logFile).Length -gt $maxsize)
+        {
             Write-Output "Rolling log over because it reached maxsize: $maxsize Bytes" | Out-File -FilePath $logFile -Append
 		    Rename-Item -Path $logFile -NewName $($log.Location + $log.Name + "__" + $date + $log.Extension)
 	    }
