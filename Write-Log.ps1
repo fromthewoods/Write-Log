@@ -44,9 +44,10 @@ function Write-Log
         }
         $logFile = $log.Location + $log.Name + $log.Extension
         #Create log file/dir if it doesn't exist
-        If (!(Test-Path $log.Location))
+        If (!(Test-Path $logFile))
         {
-            mkdir $log.Location | Out-Null
+            If (!(Test-Path $log.Location)) { mkdir $log.Location | Out-Null }
+            New-Item $logFile -ItemType "file" | Out-Null
         }
     }
     Process
@@ -70,7 +71,7 @@ function Write-Log
     {
         # Roll the log over if it gets bigger than maxsize
         $date = Get-Date -UFormat %Y-%m-%d.%H-%M-%S
-	    If ((Test-Path $logFile) -and (Get-ChildItem $logFile).Length -gt $maxsize)
+	    If ((Get-ChildItem $logFile).Length -gt $maxsize)
         {
             Write-Output "Rolling log over because it reached maxsize: $maxsize Bytes" | Out-File -FilePath $logFile -Append
 		    Rename-Item -Path $logFile -NewName $($log.Location + $log.Name + "__" + $date + $log.Extension)
