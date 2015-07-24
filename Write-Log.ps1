@@ -18,7 +18,7 @@ function Write-Log
                    Mandatory=$true,
                    ValueFromPipeline=$true)]
         [ValidateNotNullOrEmpty()]
-        $Message
+        [string[]]$Message
     ,
         [switch]$Stamp
     ,
@@ -51,20 +51,23 @@ function Write-Log
         }
     }
     Process
-    { 
-        # Add the time stamp if specified
-        If ($Stamp) { $Message = "$(Get-Date) $Message" }
-        
-        # Write to the log debug mode
-        If ($DebugMode -and $isDebug)
+    {
+        Foreach ($m in $Message)
         {
-            Write-Host "$Message"
-            If (!$WhatIf) { Write-Output "$Message" | Out-File -FilePath $logFile -Append }
-        } 
-        # Write to log in non debug mode
-        ElseIf (!($DebugMode))  
-        {
-            If (!$WhatIf) { Write-Output "$Message" | Out-File -FilePath $logFile -Append }
+            # Add the time stamp if specified
+            If ($Stamp) { $m = "$(Get-Date) $m" }
+            
+            # Write to the log debug mode
+            If ($DebugMode -and $isDebug)
+            {
+                Write-Host "$m"
+                If (!$WhatIf) { Write-Output "$m" | Out-File -FilePath $logFile -Append }
+            } 
+            # Write to log in non debug mode
+            ElseIf (!($DebugMode))  
+            {
+                If (!$WhatIf) { Write-Output "$m" | Out-File -FilePath $logFile -Append }
+            }
         }
     }
     End
