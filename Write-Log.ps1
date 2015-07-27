@@ -35,9 +35,9 @@ function Write-Log
         # Check for log array
         Try
         {
-            Get-Variable -Name Log -Scope Global
-
+            Get-Variable -Name Log -Scope Global | Out-Null
             $Global:logFile = $Global:Log.Location + $Global:Log.Name + $Global:Log.Extension
+
         }
         Catch
         {
@@ -46,9 +46,9 @@ function Write-Log
                                 Name = "ERROR" 
                                 Extension = ".log"
                             }
-            #Write-Error $_.Exception.Message
-            $Message = $_.Exception.Message
+            Write-Host $_.Exception.Message
             $Global:logFile = $Global:Log.Location + $Global:Log.Name + $Global:Log.Extension
+            Write-Host "Error log location: $Global:logFile"
         }
         
         #Create log file/dir if it doesn't exist
@@ -56,10 +56,10 @@ function Write-Log
         {
             If (!(Test-Path $Global:Log.Location))
             {
-                Write-Output "Creating $($Global:Log.Location)"
+                Write-Host "Creating $($Global:Log.Location)"
                 mkdir $Global:Log.Location | Out-Null
             }
-            Write-Output "Creating $Global:logFile"
+            Write-Host "Creating $Global:logFile"
             New-Item $Global:logFile -ItemType "file" | Out-Null
         }
     }
@@ -70,8 +70,11 @@ function Write-Log
             # Add the time stamp
             $m = "$(Get-Date) $m"
 
-            Write-Output "$m"
-            If (!$WhatIf) { Write-Output $m | Out-File -FilePath $Global:logFile -Append }
+            Write-Host "$m"
+            If (!$WhatIf)
+            {
+                Out-File -InputObject $m -FilePath $Global:logFile -Append
+            }
         }
     }
     End
