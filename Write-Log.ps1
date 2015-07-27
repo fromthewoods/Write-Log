@@ -33,51 +33,56 @@ function Write-Log
     Begin
     {
         # Check for log array
-        If (!$log)
+        Try
         {
-            $log = @{
-                Location = "C:\"
-                Name = "ERROR" 
-                Extension = ".log"
-            }
-            $Message = "ERROR: Missing 'log' array."
+            Get-Variable -Name Log -Scope Global
+
+            $Global:logFile = $Global:Log.Location + $Global:Log.Name + $Global:Log.Extension
         }
-        $logFile = $log.Location + $log.Name + $log.Extension
-        #Create log file/dir if it doesn't exist
-        If (!(Test-Path $logFile))
+        Catch
         {
-            If (!(Test-Path $log.Location)) { mkdir $log.Location | Out-Null }
-            New-Item $logFile -ItemType "file" | Out-Null
+            $Global:Log  = @{
+                                Location = "C:\"
+                                Name = "ERROR" 
+                                Extension = ".log"
+                            }
+            #Write-Error $_.Exception.Message
+            $Message = $_.Exception.Message
+            $Global:logFile = $Global:Log.Location + $Global:Log.Name + $Global:Log.Extension
+        }
+        
+        #Create log file/dir if it doesn't exist
+        If (!(Test-Path $Global:logFile))
+        {
+            If (!(Test-Path $Global:Log.Location))
+            {
+                Write-Output "Creating $($Global:Log.Location)"
+                mkdir $Global:Log.Location | Out-Null
+            }
+            Write-Output "Creating $Global:logFile"
+            New-Item $Global:logFile -ItemType "file" | Out-Null
         }
     }
     Process
     {
         Foreach ($m in $Message)
         {
-            # Add the time stamp if specified
-            If ($Stamp) { $m = "$(Get-Date) $m" }
-            
-            # Write to the log debug mode
-            If ($DebugMode -and $isDebug)
-            {
-                Write-Host "$m"
-                If (!$WhatIf) { Write-Output "$m" | Out-File -FilePath $logFile -Append }
-            } 
-            # Write to log in non debug mode
-            ElseIf (!($DebugMode))  
-            {
-                If (!$WhatIf) { Write-Output "$m" | Out-File -FilePath $logFile -Append }
-            }
+            # Add the time stamp
+            $m = "$(Get-Date) $m"
+
+            Write-Output "$m"
+            If (!$WhatIf) { Write-Output $m | Out-File -FilePath $Global:logFile -Append }
         }
     }
     End
     {
         # Roll the log over if it gets bigger than maxsize
         $date = Get-Date -UFormat %Y-%m-%d.%H-%M-%S
-	    If ((Get-ChildItem $logFile).Length -gt $maxsize)
+	    If ((Get-ChildItem $Global:logFile).Length -gt $maxsize)
         {
-            Write-Output "Rolling log over because it reached maxsize: $maxsize Bytes" | Out-File -FilePath $logFile -Append
-		    Rename-Item -Path $logFile -NewName $($log.Location + $log.Name + "__" + $date + $log.Extension)
+            Write-Output "Rolling log over because it reached maxsize: $maxsize Bytes" | Out-File -FilePath $Global:logFile -Append
+		    Rename-Item -Path $Global:logFile `
+                        -NewName $($Global:Log.Location + $Global:Log.Name + "__" + $date + $Global:Log.Extension)
 	    }
     }
 }
