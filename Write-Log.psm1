@@ -30,58 +30,67 @@ function Write-Log
         [int]$maxsize = 512000
     )
     
-    Begin
+    Try
     {
-        # Check for log array
-        If (Get-Variable -Name Log -Scope Global -ErrorAction SilentlyContinue)
+        Begin
         {
-            $Global:logFile = $Global:Log.Location + $Global:Log.Name + $Global:Log.Extension
-        }
-        Else
-        {
-            $Global:Log = @{ Location = "C:\"
-                             Name = "ERROR" 
-                             Extension = ".log"
-                           }
-            $Global:logFile = $Global:Log.Location + $Global:Log.Name + $Global:Log.Extension
-            Write-Verbose "No log info specified. Creating error log path variable: $Global:logFile"
-        }
-        
-        #Create log file/dir if it doesn't exist
-        If (!(Test-Path $Global:logFile))
-        {
-            If (!(Test-Path $Global:Log.Location))
+            # Check for log array
+            If (Get-Variable -Name Log -Scope Global -ErrorAction SilentlyContinue)
             {
-                Write-Verbose "Log file directory does not exist. Creating $($Global:Log.Location)"
-                mkdir $Global:Log.Location | Out-Null
+                $Global:logFile = $Global:Log.Location + $Global:Log.Name + $Global:Log.Extension
             }
-            Write-Verbose "Log file does not exist. Creating $Global:logFile"
-            New-Item $Global:logFile -ItemType "file" | Out-Null
+            Else
+            {
+                $Global:Log = @{ Location = "C:\"
+                                 Name = "ERROR" 
+                                 Extension = ".log"
+                               }
+                $Global:logFile = $Global:Log.Location + $Global:Log.Name + $Global:Log.Extension
+                Write-Verbose "No log info specified. Creating error log path variable: $Global:logFile"
+            }
+            
+            #Create log file/dir if it doesn't exist
+            If (!(Test-Path $Global:logFile))
+            {
+                If (!(Test-Path $Global:Log.Location))
+                {
+                    Write-Verbose "Log file directory does not exist. Creating $($Global:Log.Location)"
+                    mkdir $Global:Log.Location | Out-Null
+                }
+                Write-Verbose "Log file does not exist. Creating $Global:logFile"
+                New-Item $Global:logFile -ItemType "file" | Out-Null
+            }
         }
-    }
-    Process
-    {
-        Foreach ($m in $Message)
+        Process
         {
-            # Add the time stamp
-            $m = "$(Get-Date) $m"
+            Foreach ($m in $Message)
+            {
+                # Add the time stamp
+                $m = "$(Get-Date) $m"
 
-            Write-Verbose "$m"
-            If (!$WhatIf)
-            {
-                Out-File -InputObject $m -FilePath $Global:logFile -Append
+                Write-Verbose "$m"
+                If (!$WhatIf)
+                {
+                    Out-File -InputObject $m -FilePath $Global:logFile -Append
+                }
             }
         }
-    }
-    End
-    {
-        # Roll the log over if it gets bigger than maxsize
-        $date = Get-Date -UFormat %Y-%m-%d.%H-%M-%S
-	    If ((Get-ChildItem $Global:logFile).Length -gt $maxsize)
+        End
         {
-            Write-Log "Rolling log over because it reached maxsize: $maxsize Bytes" | Out-File -FilePath $Global:logFile -Append
-		    Rename-Item -Path $Global:logFile `
-                        -NewName $($Global:Log.Location + $Global:Log.Name + "__" + $date + $Global:Log.Extension)
-	    }
+            # Roll the log over if it gets bigger than maxsize
+            $date = Get-Date -UFormat %Y-%m-%d.%H-%M-%S
+	        If ((Get-ChildItem $Global:logFile).Length -gt $maxsize)
+            {
+                Write-Log "Rolling log over because it reached maxsize: $maxsize Bytes" | Out-File -FilePath $Global:logFile -Append
+	    	    Rename-Item -Path $Global:logFile `
+                            -NewName $($Global:Log.Location + $Global:Log.Name + "__" + $date + $Global:Log.Extension)
+	        }
+        }
+    }
+    Catch
+    {
+        Write-Log "ERROR: $($_.Exception.Message)"
+        Write-Log "ERROR: $($_.InvocationInfo.PositionMessage.Split('+')[0])"
+        Exit 1
     }
 }
