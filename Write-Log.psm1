@@ -30,14 +30,15 @@ function Write-Log
         [int]$maxsize = 512000
     )
     
-    Try
+
+    Begin
     {
-        Begin
+        Try
         {
             # Check for log array
             If (Get-Variable -Name Log -Scope Global -ErrorAction SilentlyContinue)
             {
-                $Global:logFile = $Global:Log.Location + $Global:Log.Name + $Global:Log.Extension
+                    $Global:logFile = $Global:Log.Location + $Global:Log.Name + $Global:Log.Extension
             }
             Else
             {
@@ -61,36 +62,36 @@ function Write-Log
                 New-Item $Global:logFile -ItemType "file" | Out-Null
             }
         }
-        Process
+        Catch
         {
-            Foreach ($m in $Message)
-            {
-                # Add the time stamp
-                $m = "$(Get-Date) $m"
-
-                Write-Verbose "$m"
-                If (!$WhatIf)
-                {
-                    Out-File -InputObject $m -FilePath $Global:logFile -Append
-                }
-            }
-        }
-        End
-        {
-            # Roll the log over if it gets bigger than maxsize
-            $date = Get-Date -UFormat %Y-%m-%d.%H-%M-%S
-	        If ((Get-ChildItem $Global:logFile).Length -gt $maxsize)
-            {
-                Write-Log "Rolling log over because it reached maxsize: $maxsize Bytes" | Out-File -FilePath $Global:logFile -Append
-	    	    Rename-Item -Path $Global:logFile `
-                            -NewName $($Global:Log.Location + $Global:Log.Name + "__" + $date + $Global:Log.Extension)
-	        }
+            Write-Log "ERROR: $($_.Exception.Message)"
+            Write-Log "ERROR: $($_.InvocationInfo.PositionMessage.Split('+')[0])"
+            Exit 1
         }
     }
-    Catch
+    Process
     {
-        Write-Log "ERROR: $($_.Exception.Message)"
-        Write-Log "ERROR: $($_.InvocationInfo.PositionMessage.Split('+')[0])"
-        Exit 1
+        Foreach ($m in $Message)
+        {
+            # Add the time stamp
+            $m = "$(Get-Date) $m"
+
+            Write-Verbose "$m"
+            If (!$WhatIf)
+            {
+                Out-File -InputObject $m -FilePath $Global:logFile -Append
+            }
+        }
+    }
+    End
+    {
+        # Roll the log over if it gets bigger than maxsize
+        $date = Get-Date -UFormat %Y-%m-%d.%H-%M-%S
+	    If ((Get-ChildItem $Global:logFile).Length -gt $maxsize)
+        {
+            Write-Output "Rolling log over because it reached maxsize: $maxsize Bytes" | Out-File -FilePath $Global:logFile -Append
+		    Rename-Item -Path $Global:logFile `
+                        -NewName $($Global:Log.Location + $Global:Log.Name + "__" + $date + $Global:Log.Extension)
+	    }
     }
 }
