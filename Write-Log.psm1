@@ -100,9 +100,9 @@ function Write-Log
             {
             	switch ($LogLevel)
                 {
-                    0 { Write-Output $m }
+                    0 { Write-Host $m }
                     1 { Out-File -InputObject $m -FilePath $LogFile -Append }
-                    2 { Out-File -InputObject $m -FilePath $LogFile -Append; Write-Output $m }
+                    2 { Out-File -InputObject $m -FilePath $LogFile -Append; Write-Host $m }
                 }
             }
             Catch
