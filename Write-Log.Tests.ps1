@@ -1,5 +1,5 @@
 ﻿$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$moduleName = 'Logging'
+$moduleName = 'Write-Log'
 
 Remove-Module $moduleName -Force -ErrorAction SilentlyContinue
 Import-Module $here\$moduleName.psd1 -Force
