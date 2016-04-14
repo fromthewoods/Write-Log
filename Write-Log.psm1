@@ -1,5 +1,3 @@
-function Write-Log
-{
 <#
 .Synopsis
    Logs the passed "message" to a designated log file.
@@ -10,16 +8,9 @@ function Write-Log
    gets bigger than 'maxsize' it will rename it and append the current date.
 .EXAMPLE
    Write-Log "This is a message" -Stamp
-.PARAMETER Message
-    A string or array of strings that will be written to the log.
-.PARAMETER MaxSize
-    The maximum size in bytes that the log can be before the function rolls the log into a
-    new file.
-.PARAMETER LogLevel
-    Level 0 - Writes out to the screen via Write-Output
-    Level 1 - Writes out to a file
-    Level 2 - Writes to both the screen and file
 #>
+function Write-Log
+{
 	[cmdletBinding()]
 	Param
     (
@@ -29,64 +20,52 @@ function Write-Log
         [ValidateNotNullOrEmpty()]
         [string[]]$Message
     ,
-        [Parameter(Position=1,
-                   Mandatory=$false,
-                   ValueFromPipeline=$false)]
-        [string]$LogFile = 'C:\ERROR.log'
+        [switch]$Stamp
     ,
-        [Parameter(Position=2,
-                   Mandatory=$false,
-                   ValueFromPipeline=$false)]
-        [int]$MaxSize = 512000
+        [switch]$DebugMode
     ,
-        [Parameter(Position=3,
-                   Mandatory=$false,
-                   ValueFromPipeline=$false)]
-        [ValidateSet('0','1','2')]
-        [int]$LogLevel = 0
+        [switch]$WhatIf
+    ,
+        # Size of log to roll over to a new file
+        [int]$maxsize = 512000
     )
     
+
     Begin
     {
         Try
         {
             # Check for log array
-            If ($LogFile -eq 'C:\ERROR.log')
+            If (Get-Variable -Name Log -Scope Global -ErrorAction SilentlyContinue)
             {
-                $LogDir = 'C:\'
-                Write-Verbose "No log info specified. Creating error log path variable: $LogFile"
+                    $Global:logFile = $Global:Log.Location + $Global:Log.Name + $Global:Log.Extension
             }
             Else
             {
-                $LogDir = $LogFile.Substring(0,$(($LogFile.LastIndexOf('\'))+1))
+                $Global:Log = @{ Location = "C:\"
+                                 Name = "ERROR" 
+                                 Extension = ".log"
+                               }
+                $Global:logFile = $Global:Log.Location + $Global:Log.Name + $Global:Log.Extension
+                Write-Verbose "No log info specified. Creating error log path variable: $Global:logFile"
             }
             
             #Create log file/dir if it doesn't exist
-            If (!(Test-Path -Path $LogFile))
+            If (!(Test-Path $Global:logFile))
             {
-                If (!(Test-Path -Path $LogDir ))
+                If (!(Test-Path $Global:Log.Location))
                 {
-                    Write-Verbose "Log directory does not exist. Creating: $LogDir"
-                    New-Item -Path $LogDir -ItemType Directory | Out-Null
+                    Write-Verbose "Log file directory does not exist. Creating $($Global:Log.Location)"
+                    mkdir $Global:Log.Location | Out-Null
                 }
-                Write-Verbose "Log file does not exist. Creating: $LogFile"
-                New-Item $LogFile -ItemType File | Out-Null
+                Write-Verbose "Log file does not exist. Creating $Global:logFile"
+                New-Item $Global:logFile -ItemType "file" | Out-Null
             }
-            
-            # Roll the log over if it gets bigger than maxsize
-            $Log = Get-Item -Path $LogFile
-	        If ($Log.Length -gt $MaxSize)
-            {
-                $date = Get-Date -UFormat %Y-%m-%d.%H-%M-%S
-                $newName = $Log.BaseName + '__' + $date + $Log.Extension
-                Write-Output "Rolling log over because it reached maxsize: $MaxSize Bytes" | Out-File -FilePath $LogFile -Append
-		        Rename-Item -Path $LogFile -NewName $newName 
-	        }
         }
         Catch
         {
-            Write-Error "ERROR: $($_.Exception.Message)"
-            Write-Error "ERROR: $($_.InvocationInfo.PositionMessage.Split('+')[0])"
+            Write-Log "ERROR: $($_.Exception.Message)"
+            Write-Log "ERROR: $($_.InvocationInfo.PositionMessage.Split('+')[0])"
             Exit 1
         }
     }
@@ -96,25 +75,23 @@ function Write-Log
         {
             # Add the time stamp
             $m = "$(Get-Date) $m"
-            Try
+
+            Write-Verbose "$m"
+            If (!$WhatIf)
             {
-            	switch ($LogLevel)
-                {
-                    0 { Write-Output $m }
-                    1 { Out-File -InputObject $m -FilePath $LogFile -Append }
-                    2 { Out-File -InputObject $m -FilePath $LogFile -Append; Write-Output $m }
-                }
+                Out-File -InputObject $m -FilePath $Global:logFile -Append
             }
-            Catch
-            {
-                Write-Error "ERROR: $($_.Exception.Message)"
-                Write-Error "ERROR: $($_.InvocationInfo.PositionMessage.Split('+')[0])"
-                Exit 1
-            } 
         }
     }
     End
     {
-
+        # Roll the log over if it gets bigger than maxsize
+        $date = Get-Date -UFormat %Y-%m-%d.%H-%M-%S
+	    If ((Get-ChildItem $Global:logFile).Length -gt $maxsize)
+        {
+            Write-Output "Rolling log over because it reached maxsize: $maxsize Bytes" | Out-File -FilePath $Global:logFile -Append
+		    Rename-Item -Path $Global:logFile `
+                        -NewName $($Global:Log.Location + $Global:Log.Name + "__" + $date + $Global:Log.Extension)
+	    }
     }
 }
