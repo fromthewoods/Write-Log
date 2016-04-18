@@ -50,26 +50,28 @@ function Write-Log
     {
         Try
         {
-            Write-Verbose 'Check for log array'
             If ($LogFile -eq 'C:\ERROR.log')
             {
                 $LogDir = 'C:\'
-                Write-Verbose "No log info specified. Creating error log path variable: $LogFile"
+                Write-Verbose "Logfile: $LogFile"
+                Write-Verbose "LogDir: $LogDir"
             }
             Else
             {
                 $LogDir = $LogFile.Substring(0,$(($LogFile.LastIndexOf('\'))+1))
+                Write-Verbose "Logfile: $LogFile"
+                Write-Verbose "LogDir: $LogDir"
             }
             
-            Write-Verbose "Create log file/dir if it doesn't exist"
             If (!(Test-Path -Path $LogFile))
             {
+                Write-Verbose "Part of the LogFile path doesn't exist."
                 If (!(Test-Path -Path $LogDir ))
                 {
-                    Write-Verbose "Log directory does not exist. Creating: $LogDir"
+                    Write-Verbose "The LogDir doesn't exist."
                     New-Item -Path $LogDir -ItemType Directory | Out-Null
                 }
-                Write-Verbose "Log file does not exist. Creating: $LogFile"
+                Write-Verbose "Log file does not exist. Creating..."
                 New-Item $LogFile -ItemType File | Out-Null
             }
             
@@ -77,6 +79,7 @@ function Write-Log
             $Log = Get-Item -Path $LogFile
 	        If ($Log.Length -gt $MaxSize)
             {
+                Write-Verbose "The LogFile is larger than $MaxSize bytes. Rolling over..."
                 $date = Get-Date -UFormat %Y-%m-%d.%H-%M-%S
                 $newName = $Log.BaseName + '__' + $date + $Log.Extension
                 Write-Output "Rolling log over because it reached maxsize: $MaxSize Bytes" | Out-File -FilePath $LogFile -Append
@@ -115,6 +118,5 @@ function Write-Log
     }
     End
     {
-
     }
 }
